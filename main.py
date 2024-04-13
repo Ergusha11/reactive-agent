@@ -8,6 +8,7 @@ from drawScreen import obstacle, items, updateScreen, mainObject, screenEvents, 
 
 import pygame as pg
 import random
+import sys
 
 pg.init()
 
@@ -19,7 +20,8 @@ items(10)
 
 def main() -> None:
     rowB, colB = mainObject()
-    agents = [Agent((rowB,colB)),Agent((rowB,colB))]
+    agents = [Agent((rowB,colB))]
+    #agents = [Agent((rowB,colB)),Agent((rowB,colB))]
     bttnItem = False
     bttnObs = False
 
@@ -28,6 +30,9 @@ def main() -> None:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
+                sys.exit()
+                break
+                
             
             bttnItem, bttnObs = screenEvents(screen, event, bttnItem, bttnObs)
             insertElements(bttnItem, bttnObs, event)
@@ -40,5 +45,5 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
-pg.quit()
+#pg.quit()
         

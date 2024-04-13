@@ -121,7 +121,7 @@ def insertElements(bttnItem: bool, bttnObs: bool, event: pg.event):
                 elif table[mrow - 1][mcol - 1] == 'O':
                     table[mrow - 1][mcol - 1] = ''
             elif bttnItem:
-                item = Item(random.choice(NUM_TUPLEM))
+                item = Item(random.choice(NUM_TUPLE))
                 if table[mrow - 1][mcol - 1] == '':
                     table[mrow - 1][mcol - 1] = item
                 elif isinstance(table[mrow - 1][mcol - 1],Item): 
