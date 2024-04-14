@@ -24,6 +24,8 @@ MYFONT = pg.font.SysFont('Arial', 18) # Configure font
 
 NUM_TUPLE = [2,3,4] # numbers of samples
 
+MAX_NUM = 90 # value max for color
+
 table = [['' for _ in range(m)] for _ in range(n)] # 26 rows x 42 columns
 
 
@@ -68,6 +70,11 @@ def drawObjects(screen: pg.Surface) -> None:
                 num = table[i][j].getNumItem()
                 pg.draw.rect(screen, (0, 255, 0), rect)
                 text_surf = MYFONT.render(str(num), True, (255, 255, 255))
+            if isinstance(table[i][j], crumbItem):
+                num = table[i][j].getNumCrumb()
+                intensity = int((num * 4 / MAX_NUM) * 255)
+                pg.draw.rect(screen, (intensity, 0, intensity),rect)
+                text_surf = MYFONT.render('#', True, (255, 255, 255))
 
             if text_surf:
                 text_rect = text_surf.get_rect(center=rect.center)

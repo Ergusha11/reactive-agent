@@ -3,6 +3,7 @@ from item import *
 import heapq
 import pygame as pg
 import random
+import math
 
 class Agent():
     # Constructor
@@ -46,17 +47,20 @@ class Agent():
     
     def crumbSensor(self,row:int,col:int) -> tuple:
         numCrumb = []
-        if isinstance(table[row -1][col],crumbItem):
-            numCrumb.append((row-1,col))
-        if isinstance(table[row + 1][col],crumbItem):
-            numCrumb.append((row + 1,col))
-        if isinstance(table[row][col+1],crumbItem):
-            numCrumb.append((row,col+1))
-        if isinstance(table[row][col - 1],crumbItem):
-            numCrumb.append((row,col-1))
-
+        directions = [
+            (-1, 0), (1, 0), (0, 1), (0, -1)
+        ]
+        for dr, dc in directions:
+            new_row, new_col = row + dr, col + dc
+            if new_row > 0 and new_row < n-1 and new_col < m-1 and new_col > 0: 
+                current_cell = table[new_row][new_col]
+                if isinstance(current_cell, crumbItem):
+                    numCrumb.append((new_row, new_col, current_cell.getNumCrumb(), False))
+                elif isinstance(current_cell, Item):
+                    numCrumb.append((new_row, new_col, 0, True))
         return numCrumb
-    # Agent's behavior
+
+    #Agent's behavior
     def randomStep(self,row:int,col:int) -> tuple:
         possibleSteps = []
         if self.northSensor(row,col):
@@ -127,6 +131,11 @@ class Agent():
     def distanceManhattan(self, x: tuple,y: tuple) -> int:
         return abs(x[0] - y[0]) + abs(x[1] - y[1])
     
+    def distanceEuclidean(self, start, end):
+        (x1, y1) = start
+        (x2, y2) = end
+        return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
     def A_Star(self) -> tuple:
         # position[0]=col and position[1]=row
         col , row = self.getPosition()
@@ -168,28 +177,49 @@ class Agent():
                         heapq.heappush(openSet,(fFuntion[neighbor],neighbor))
         return {}
 
-    def migajaItem(self):
-        if isinstance(table[self.row,self.col],crumbItem):
-            refCrumb = table[self.row,self.col]
-            num = refCrumb.getNumCrumb()
-            num -= 1
-            refCrumb.setNumCrumb(num)
-            numCrumb = self.crumbSensor() 
-            if numCrumb:
-                distance = []
-                for crumb in numCrumb:
-                    heapq.heappush(distance,self.distanceManhattan(crumb,(self.base_col,self.base_row),crumb))
+    def migajaItem(self) -> bool:
+        #print("Entre a la funcion")
+        if self.getHasItem():
+            if table[self.row][self.col] == '':
+                crumb = crumbItem(2) 
+                table[self.row][self.col] = crumb
 
-                dis,row,col = distance[0]
-                self.setPosition(row,col)
-            else:
-                if isinstance(table[self.row][self.col],Item):
+            elif isinstance(table[self.row][self.col],crumbItem):
+                refCrumb = table[self.row][self.col]
+                num = refCrumb.getNumCrumb()
+                num += 2
+                refCrumb.setNumCrumb(num)
+            return True
+        else:
+            if isinstance(table[self.row][self.col],crumbItem) or table[self.row][self.col] == 'M':
+                refCrumb = table[self.row][self.col]
+                if refCrumb != 'M':
+                    num = refCrumb.getNumCrumb() - 1
+                    refCrumb.setNumCrumb(num)
+                if refCrumb != 'M' and num == 0 :
+                    table[self.row][self.col] = ''
+                
+                numCrumb = self.crumbSensor(self.row,self.col) 
+                #print("posicion actual:",self.getPosition())
+                if numCrumb:
+                    distance = []
+                    for crumb in numCrumb:
+                        row, col, count, has_item = crumb
+                        item_priority = 5 if has_item else 0  # Prioriza casillas con ítems si son detectados
+                        dist = -self.distanceEuclidean((row, col), (self.base_col, self.base_row)) - (count * 1.8) - item_priority
+                        heapq.heappush(distance, (dist, row, col))
+                        #print(distance)
 
+                    _, row, col = heapq.heappop(distance)  # Ahora esta extrae la mayor distancia
+                    self.setPosition(col, row)
+                    
+                    return True
+                else:
+                    row,column = self.randomStep(self.row,self.col)
+                    self.setPosition(self.col + column, self.row + row)
+                    return True
 
-
-            if num == 0:
-                table[self.row][self.col] = ''
-
+        return False
         
 
     def move(self) -> None:
@@ -197,26 +227,21 @@ class Agent():
             if table[self.row][self.col] == 'M':
                 print("Item has been delivered")
                 self.invertHasItem()
+                self.migajaItem()
                 self.route = []
                 return
                 
             #self.movetoBase()
-            column,row = self.route.pop()
+            row,column = self.route.pop()
             print(self.route)
-            self.setPosition(row,column)
+            self.setPosition(column,row)
 
             # create crumbItem
-            if table[row][column] == '':
-                crumb = crumbItem(2) 
-                table[row][column] = crumb
-            else:
-                self.migajaItem()
+            self.migajaItem()
             
         else:
-            column ,row = self.getPosition()
-            row,column = self.randomStep(row,column)
-            if isinstance(table[self.row + row][self.col + column],Item):
-                ref_item = table[self.row + row][self.col + column]
+            if isinstance(table[self.row][self.col],Item):
+                ref_item = table[self.row][self.col]
                 num_item = ref_item.getNumItem()
                 num_item -= 1
                 ref_item.setNumItem(num_item)
@@ -226,8 +251,13 @@ class Agent():
                 self.route = self.A_Star()
                 print(self.route)
                 if not self.route:
-                    self.setPosition(self.col + column, self.row + row)
                     self.route = self.A_Star()
                 if num_item == 0:
-                    table[self.row + row][self.col + column] = ''   
+                    table[self.row][self.col] = ''
+
+
+        # Case crumb
+        column ,row = self.getPosition()
+        row,column = self.randomStep(row,column)
+        if not self.migajaItem():
             self.setPosition(self.col + column, self.row + row)

@@ -20,7 +20,7 @@ items(10)
 
 def main() -> None:
     rowB, colB = mainObject()
-    agents = [Agent((rowB,colB))]
+    agents = [Agent((rowB,colB)),Agent((rowB,colB))]
     #agents = [Agent((rowB,colB)),Agent((rowB,colB))]
     bttnItem = False
     bttnObs = False
